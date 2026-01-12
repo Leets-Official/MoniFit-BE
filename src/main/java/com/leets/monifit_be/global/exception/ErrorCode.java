@@ -18,6 +18,7 @@ public enum ErrorCode {
     INVALID_TOKEN(401, "INVALID_TOKEN", "유효하지 않은 토큰입니다"),
     EXPIRED_TOKEN(401, "EXPIRED_TOKEN", "만료된 토큰입니다"),
     KAKAO_AUTH_FAILED(401, "KAKAO_AUTH_FAILED", "카카오 인증에 실패했습니다"),
+    KAKAO_UNLINK_FAILED(500, "KAKAO_UNLINK_FAILED", "카카오 연동 해제에 실패했습니다"),
 
     // Member
     MEMBER_NOT_FOUND(404, "MEMBER_NOT_FOUND", "사용자를 찾을 수 없습니다"),
