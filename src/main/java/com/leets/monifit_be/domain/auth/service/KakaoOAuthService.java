@@ -33,13 +33,17 @@ public class KakaoOAuthService {
     private final String redirectUri;
     private final String tokenUri;
     private final String userInfoUri;
+    private final String adminKey;
+    private final String unlinkUri;
 
     public KakaoOAuthService(
             @Value("${kakao.client-id}") String clientId,
             @Value("${kakao.client-secret}") String clientSecret,
             @Value("${kakao.redirect-uri}") String redirectUri,
             @Value("${kakao.token-uri}") String tokenUri,
-            @Value("${kakao.user-info-uri}") String userInfoUri) {
+            @Value("${kakao.user-info-uri}") String userInfoUri,
+            @Value("${kakao.admin-key}") String adminKey,
+            @Value("${kakao.unlink-uri}") String unlinkUri) {
 
         // 타임아웃 설정 (연결 10초, 읽기 10초)
         HttpClient httpClient = HttpClient.create()
@@ -57,6 +61,8 @@ public class KakaoOAuthService {
         this.redirectUri = redirectUri;
         this.tokenUri = tokenUri;
         this.userInfoUri = userInfoUri;
+        this.adminKey = adminKey;
+        this.unlinkUri = unlinkUri;
     }
 
     /**
@@ -128,5 +134,30 @@ public class KakaoOAuthService {
                 "&client_secret=" + clientSecret +
                 "&redirect_uri=" + redirectUri +
                 "&code=" + code;
+    }
+
+    /**
+     * 카카오 사용자 연동 해제
+     * Admin Key를 사용하여 서버에서 직접 연동 해제
+     *
+     * @param kakaoId 카카오 회원 고유 ID
+     */
+    public void unlinkUser(Long kakaoId) {
+        try {
+            webClient.post()
+                    .uri(unlinkUri)
+                    .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + adminKey)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .bodyValue("target_id_type=user_id&target_id=" + kakaoId)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("카카오 연동 해제 성공: kakaoId={}", kakaoId);
+
+        } catch (WebClientResponseException e) {
+            log.error("카카오 연동 해제 실패: kakaoId={}, error={}", kakaoId, e.getResponseBodyAsString());
+            throw new BusinessException(ErrorCode.KAKAO_UNLINK_FAILED);
+        }
     }
 }
