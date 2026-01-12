@@ -28,6 +28,7 @@ public enum ErrorCode {
     BUDGET_PERIOD_NOT_FOUND(404, "BUDGET_PERIOD_NOT_FOUND", "예산 기간을 찾을 수 없습니다"),
     ACTIVE_PERIOD_NOT_FOUND(404, "ACTIVE_PERIOD_NOT_FOUND", "활성화된 예산 기간이 없습니다"),
     ACTIVE_PERIOD_EXISTS(409, "ACTIVE_PERIOD_EXISTS", "이미 활성화된 예산 기간이 있습니다"),
+    INVALID_START_DATE(400, "INVALID_START_DATE", "시작일은 오늘 이후여야 합니다"),
 
     // Expense
     EXPENSE_NOT_FOUND(404, "EXPENSE_NOT_FOUND", "지출 내역을 찾을 수 없습니다"),
