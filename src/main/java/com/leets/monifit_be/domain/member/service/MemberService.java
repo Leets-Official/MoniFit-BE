@@ -2,6 +2,7 @@ package com.leets.monifit_be.domain.member.service;
 
 import com.leets.monifit_be.domain.auth.repository.RefreshTokenRepository;
 import com.leets.monifit_be.domain.auth.service.KakaoOAuthService;
+import com.leets.monifit_be.domain.budget.repository.BudgetPeriodRepository;
 import com.leets.monifit_be.domain.member.dto.MemberNameUpdateRequest;
 import com.leets.monifit_be.domain.member.dto.MemberResponse;
 import com.leets.monifit_be.domain.member.entity.Member;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 /**
  * 회원 서비스
@@ -25,9 +28,13 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final KakaoOAuthService kakaoOAuthService;
+    private final BudgetPeriodRepository budgetPeriodRepository;
 
     /**
      * 내 정보 조회
+     * 요구사항 9-1 마이페이지:
+     * - 이메일, 이름, 가입일
+     * - 시작일: 최초 목표 예산 설정 시작일
      *
      * @param memberId 회원 ID (JWT에서 추출)
      * @return 회원 정보 응답
@@ -35,8 +42,15 @@ public class MemberService {
     @Transactional(readOnly = true)
     public MemberResponse getMyInfo(Long memberId) {
         Member member = findMemberById(memberId);
-        log.info("내 정보 조회: memberId={}", memberId);
-        return MemberResponse.from(member);
+
+        // 최초 예산 기간 시작일 조회 (없으면 null)
+        LocalDate firstBudgetStartDate = budgetPeriodRepository
+                .findFirstByMemberIdOrderByStartDateAsc(memberId)
+                .map(budgetPeriod -> budgetPeriod.getStartDate())
+                .orElse(null);
+
+        log.info("내 정보 조회: memberId={}, firstBudgetStartDate={}", memberId, firstBudgetStartDate);
+        return MemberResponse.from(member, firstBudgetStartDate);
     }
 
     /**
@@ -51,8 +65,14 @@ public class MemberService {
         Member member = findMemberById(memberId);
         member.updateName(request.getName());
 
+        // 최초 예산 기간 시작일 조회 (없으면 null)
+        LocalDate firstBudgetStartDate = budgetPeriodRepository
+                .findFirstByMemberIdOrderByStartDateAsc(memberId)
+                .map(budgetPeriod -> budgetPeriod.getStartDate())
+                .orElse(null);
+
         log.info("이름 수정 완료: memberId={}, newName={}", memberId, request.getName());
-        return MemberResponse.from(member);
+        return MemberResponse.from(member, firstBudgetStartDate);
     }
 
     /**
