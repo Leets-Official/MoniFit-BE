@@ -53,8 +53,13 @@ public class SecurityConfig {
                                                                 "/error",
                                                                 // Swagger
                                                                 "/swagger-ui/**",
-                                                                "/swagger-ui.html",
-                                                                "/v3/api-docs/**")
+                                                                "/swagger-ui.html"
+//                                                                "/v3/api-docs/**",
+//                                                                "/expenses/**",
+//                                                                "/calendar/**",
+//                                                                "/dashboard/**",
+//                                                                "/stamps/**"
+                                                                )
                                                 .permitAll()
                                                 // 나머지는 인증 필요
                                                 .anyRequest().authenticated())
