@@ -33,7 +33,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(
             @Valid @RequestBody KakaoLoginRequest request) {
 
-        TokenResponse response = authService.kakaoLogin(request.getCode());
+        TokenResponse response = authService.kakaoLogin(request.getAuthorizationCode());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

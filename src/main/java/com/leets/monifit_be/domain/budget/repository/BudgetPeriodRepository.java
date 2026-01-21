@@ -35,4 +35,10 @@ public interface BudgetPeriodRepository extends JpaRepository<BudgetPeriod, Long
      * 마이페이지 "시작일" 표시에 사용
      */
     Optional<BudgetPeriod> findFirstByMemberIdOrderByStartDateAsc(Long memberId);
+
+    /**
+     * 회원의 예산 기간 존재 여부 확인
+     * 로그인 시 hasEverSetBudget 판단에 사용
+     */
+    boolean existsByMemberId(Long memberId);
 }
