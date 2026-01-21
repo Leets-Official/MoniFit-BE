@@ -1,9 +1,9 @@
-package com.leets.monifit_be.domain.calendar.service;
+package com.leets.monifit_be.domain.expense.service;
 
 import com.leets.monifit_be.domain.budget.entity.BudgetPeriod;
 import com.leets.monifit_be.domain.budget.entity.PeriodStatus; // 1. 상태 Enum 임포트
 import com.leets.monifit_be.domain.budget.repository.BudgetPeriodRepository;
-import com.leets.monifit_be.domain.calendar.dto.CalendarResponse; // 2. DTO 패키지 경로 확인
+import com.leets.monifit_be.domain.expense.dto.CalendarResponse; // 2. DTO 패키지 경로 확인
 import com.leets.monifit_be.domain.expense.entity.Expense;
 import com.leets.monifit_be.domain.expense.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;

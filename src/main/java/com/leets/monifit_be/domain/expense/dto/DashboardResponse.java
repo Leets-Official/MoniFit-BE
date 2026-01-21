@@ -1,4 +1,4 @@
-package com.leets.monifit_be.domain.budget.dto.response;
+package com.leets.monifit_be.domain.expense.dto;
 
 public class DashboardResponse {
     private Long remainingBudget;

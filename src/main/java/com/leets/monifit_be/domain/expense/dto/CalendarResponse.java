@@ -1,4 +1,4 @@
-package com.leets.monifit_be.domain.calendar.dto;
+package com.leets.monifit_be.domain.expense.dto;
 
 import java.util.List;
 
