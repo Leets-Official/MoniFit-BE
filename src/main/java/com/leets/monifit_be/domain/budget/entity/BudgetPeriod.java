@@ -47,6 +47,12 @@ public class BudgetPeriod extends BaseTimeEntity {
     @Column(name = "warning_shown", nullable = false)
     private Boolean warningShown;
 
+    @Column(name = "over_budget_shown", nullable = false)
+    private Boolean overBudgetShown;
+
+    @Column(name = "period_complete_shown", nullable = false)
+    private Boolean periodCompleteShown;
+
     @Builder
     private BudgetPeriod(Member member, LocalDate startDate, Integer budgetAmount) {
         this.member = member;
@@ -55,6 +61,8 @@ public class BudgetPeriod extends BaseTimeEntity {
         this.budgetAmount = budgetAmount;
         this.status = PeriodStatus.ACTIVE;
         this.warningShown = false;
+        this.overBudgetShown = false;
+        this.periodCompleteShown = false;
     }
 
     public void complete(CompletionType completionType) {
@@ -64,5 +72,13 @@ public class BudgetPeriod extends BaseTimeEntity {
 
     public void showWarning() {
         this.warningShown = true;
+    }
+
+    public void showOverBudget() {
+        this.overBudgetShown = true;
+    }
+
+    public void showPeriodComplete() {
+        this.periodCompleteShown = true;
     }
 }

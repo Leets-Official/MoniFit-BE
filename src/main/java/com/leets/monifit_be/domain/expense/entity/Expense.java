@@ -8,6 +8,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDate;
 
 @Entity
@@ -22,6 +25,7 @@ public class Expense extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "budget_period_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private BudgetPeriod budgetPeriod;
 
     @Enumerated(EnumType.STRING)
