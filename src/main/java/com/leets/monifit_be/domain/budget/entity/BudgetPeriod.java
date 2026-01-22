@@ -3,10 +3,7 @@ package com.leets.monifit_be.domain.budget.entity;
 import com.leets.monifit_be.domain.member.entity.Member;
 import com.leets.monifit_be.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -15,7 +12,9 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "budget_period")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class BudgetPeriod extends BaseTimeEntity {
 
     @Id
@@ -23,7 +22,7 @@ public class BudgetPeriod extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
@@ -45,16 +44,24 @@ public class BudgetPeriod extends BaseTimeEntity {
     private CompletionType completionType;
 
     @Column(name = "warning_shown", nullable = false)
-    private Boolean warningShown;
+    private boolean warningShown;
+
+    @Column(name = "over_budget_shown", nullable = false)
+    private boolean overBudgetShown;
+
+    @Column(name = "period_complete_shown", nullable = false)
+    private boolean periodCompleteShown;
 
     @Builder
-    private BudgetPeriod(Member member, LocalDate startDate, Integer budgetAmount) {
+    public BudgetPeriod(Member member, LocalDate startDate, Integer budgetAmount) {
         this.member = member;
         this.startDate = startDate;
-        this.endDate = startDate.plusDays(29); // 30일 기간
+        this.endDate = startDate.plusDays(29);
         this.budgetAmount = budgetAmount;
         this.status = PeriodStatus.ACTIVE;
         this.warningShown = false;
+        this.overBudgetShown = false;
+        this.periodCompleteShown = false;
     }
 
     public void complete(CompletionType completionType) {
@@ -64,5 +71,13 @@ public class BudgetPeriod extends BaseTimeEntity {
 
     public void showWarning() {
         this.warningShown = true;
+    }
+
+    public void showOverBudget() {
+        this.overBudgetShown = true;
+    }
+
+    public void showPeriodComplete() {
+        this.periodCompleteShown = true;
     }
 }

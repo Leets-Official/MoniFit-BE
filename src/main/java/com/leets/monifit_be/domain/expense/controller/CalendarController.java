@@ -3,6 +3,7 @@ package com.leets.monifit_be.domain.expense.controller;
 import com.leets.monifit_be.domain.expense.dto.CalendarResponse;
 import com.leets.monifit_be.domain.expense.service.CalendarService;
 import com.leets.monifit_be.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,20 +24,24 @@ public class CalendarController {
 
     private final CalendarService calendarService;
 
+    @Operation(summary = "월별 지출 합계 조회")
     @GetMapping("/monthly")
-    public ResponseEntity<ApiResponse<Object>> getMonthlySummary(
+    public ResponseEntity<ApiResponse<CalendarResponse.MonthlySummary>> getMonthlySummary(
             @AuthenticationPrincipal Long memberId,
-            @RequestParam("yearMonth") String yearMonth) { // 예: "2024-03"
-        // 추후 서비스 로직 연결 필요
-        return ResponseEntity.ok(ApiResponse.success(null));
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) {
+
+        CalendarResponse.MonthlySummary response = calendarService.getMonthlySummary(memberId, year, month);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/daily") // 경로 추가
-    public ResponseEntity<ApiResponse<CalendarResponse>> getDailyDetail(
+    @Operation(summary = "특정 날짜 지출 상세 조회")
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse<CalendarResponse.DailyDetail>> getDailyDetail(
             @AuthenticationPrincipal Long memberId,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        CalendarResponse response = calendarService.getDailyExpenses(memberId, date);
+        CalendarResponse.DailyDetail response = calendarService.getDailyDetail(memberId, date);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

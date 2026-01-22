@@ -1,58 +1,100 @@
 package com.leets.monifit_be.domain.expense.service;
 
 import com.leets.monifit_be.domain.budget.entity.BudgetPeriod;
-import com.leets.monifit_be.domain.budget.entity.PeriodStatus; // 1. 상태 Enum 임포트
+import com.leets.monifit_be.domain.budget.entity.PeriodStatus;
 import com.leets.monifit_be.domain.budget.repository.BudgetPeriodRepository;
-import com.leets.monifit_be.domain.expense.dto.CalendarResponse; // 2. DTO 패키지 경로 확인
+import com.leets.monifit_be.domain.expense.dto.CalendarResponse;
 import com.leets.monifit_be.domain.expense.entity.Expense;
+import com.leets.monifit_be.domain.expense.entity.ExpenseCategory;
 import com.leets.monifit_be.domain.expense.repository.ExpenseRepository;
+import com.leets.monifit_be.global.exception.ActiveBudgetNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CalendarService {
 
     private final ExpenseRepository expenseRepository;
     private final BudgetPeriodRepository budgetPeriodRepository;
 
-    public CalendarService(ExpenseRepository expenseRepository, BudgetPeriodRepository budgetPeriodRepository) {
-        this.expenseRepository = expenseRepository;
-        this.budgetPeriodRepository = budgetPeriodRepository;
+    @Transactional(readOnly = true)
+    public CalendarResponse.MonthlySummary getMonthlySummary(Long memberId, int year, int month) {
+        BudgetPeriod period = budgetPeriodRepository.findByMemberIdAndStatus(memberId, PeriodStatus.ACTIVE)
+                .orElseThrow(() -> new ActiveBudgetNotFoundException("활성화된 예산 기간이 없습니다."));
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+        List<CalendarResponse.DailySummary> dailySummaries = new ArrayList<>();
+        List<Expense> monthlyExpenses = expenseRepository.findAllByMemberAndMonth(memberId, year, month);
+
+        for (int day = 1; day <= yearMonth.lengthOfMonth(); day++) {
+            LocalDate date = yearMonth.atDay(day);
+            int totalAmount = monthlyExpenses.stream()
+                    .filter(e -> e.getSpentDate().isEqual(date))
+                    .mapToInt(Expense::getAmount)
+                    .sum();
+
+            boolean isWithinPeriod = !date.isBefore(period.getStartDate()) && !date.isAfter(period.getEndDate());
+
+            dailySummaries.add(CalendarResponse.DailySummary.builder()
+                    .date(date)
+                    .totalAmount(totalAmount)
+                    .isWithinPeriod(isWithinPeriod)
+                    .build());
+        }
+
+        return CalendarResponse.MonthlySummary.builder()
+                .year(year)
+                .month(month)
+                .period(CalendarResponse.PeriodInfoDto.builder()
+                        .id(period.getId())
+                        .startDate(period.getStartDate())
+                        .endDate(period.getEndDate())
+                        .build())
+                .dailySummaries(dailySummaries)
+                .build();
     }
 
     @Transactional(readOnly = true)
-    public CalendarResponse getDailyExpenses(Long memberId, LocalDate date) {
-        // 1. 현재 활성화된 기간 정보 조회 (요구사항 5번: 활성 기간 데이터만 표시)
-        // Repository의 메서드명과 상태(ACTIVE)를 정확히 매칭시킵니다.
-        BudgetPeriod activePeriod = budgetPeriodRepository.findByMemberIdAndStatus(memberId, PeriodStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalArgumentException("활성화된 예산 기간이 없습니다."));
+    public CalendarResponse.DailyDetail getDailyDetail(Long memberId, LocalDate date) {
+        BudgetPeriod period = budgetPeriodRepository.findByMemberIdAndStatus(memberId, PeriodStatus.ACTIVE)
+                .orElseThrow(() -> new ActiveBudgetNotFoundException("활성화된 예산 기간이 없습니다."));
 
-        // 2. 활성화 기간 범위 밖의 날짜 요청 시 빈 결과 반환 (요구사항 5번 규칙)
-        if (date.isBefore(activePeriod.getStartDate()) || date.isAfter(activePeriod.getEndDate())) {
-            return new CalendarResponse(0L, List.of());
-        }
+        List<Expense> dailyExpenses = expenseRepository.findByBudgetPeriodAndSpentDate(period, date);
+        int totalAmount = dailyExpenses.stream().mapToInt(Expense::getAmount).sum();
 
-        // 3. 해당 날짜의 지출 조회 (사용자 ID 필터링 포함)
-        List<Expense> expenses = expenseRepository.findBySpentDateAndBudgetPeriodMemberId(date, memberId);
+        List<CalendarResponse.CategoryDetail> categoryDetails = Arrays.stream(ExpenseCategory.values())
+                .map(category -> {
+                    List<CalendarResponse.ExpenseItem> items = dailyExpenses.stream()
+                            .filter(e -> e.getCategory() == category) // [해결] 타입 불일치 에러 해결
+                            .map(e -> CalendarResponse.ExpenseItem.builder()
+                                    .id(e.getId())
+                                    .amount(e.getAmount())
+                                    .createdAt(e.getCreatedAt().toString())
+                                    .build())
+                            .collect(Collectors.toList());
 
-        // 4. 일일 총액 계산
-        long total = expenses.stream()
-                .mapToLong(Expense::getAmount)
-                .sum();
-
-        // 5. 상세 항목 DTO 변환 (카테고리 한글명 포함)
-        List<CalendarResponse.ExpenseDetail> details = expenses.stream()
-                .map(e -> new CalendarResponse.ExpenseDetail(
-                        e.getId(),
-                        e.getCategory().getDisplayName(), // Enum의 한글명 사용
-                        e.getAmount()
-                ))
+                    return CalendarResponse.CategoryDetail.builder()
+                            .category(category.name())
+                            .categoryName(category.getDisplayName())
+                            .totalAmount(items.stream().mapToInt(CalendarResponse.ExpenseItem::getAmount).sum())
+                            .expenses(items)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
-        return new CalendarResponse(total, details);
+        return CalendarResponse.DailyDetail.builder()
+                .date(date)
+                .totalAmount(totalAmount)
+                .categories(categoryDetails)
+                .build();
     }
 }

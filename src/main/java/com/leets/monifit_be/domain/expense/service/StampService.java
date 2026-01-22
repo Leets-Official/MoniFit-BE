@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,27 +19,49 @@ import java.util.List;
 public class StampService {
 
     private final ExpenseRepository expenseRepository;
-    private final BudgetPeriodRepository budgetPeriodRepository; // 예산 기간 조회를 위해 추가
+    private final BudgetPeriodRepository budgetPeriodRepository;
 
     @Transactional(readOnly = true)
-    public StampResponse getMonthlyStamps(Long memberId, int year, int month) {
-
-        // 현재 활성화된 예산 기간 조회
+    public StampResponse getActivePeriodStamps(Long memberId) {
+        // 1. 활성 예산 기간 조회 (명세서 7-1)
         BudgetPeriod period = budgetPeriodRepository.findByMemberIdAndStatus(memberId, PeriodStatus.ACTIVE)
                 .orElseThrow(() -> new ActiveBudgetNotFoundException("활성화된 예산 기간이 없습니다."));
 
-        // 해당 월의 지출 날짜 리스트 조회
-        List<LocalDate> dates = expenseRepository.findDatesByMonth(memberId, year, month);
-
-        // 추가된 필드를 포함하여 StampResponse 생성
         LocalDate today = LocalDate.now();
+        List<StampResponse.StampDetail> stampDetails = new ArrayList<>();
+        int stampedDaysCount = 0;
 
-        return new StampResponse(
-                dates,
-                period.getStartDate(),              // 예산 시작일
-                period.getEndDate(),                // 예산 종료일
-                today,                              // 오늘 날짜
-                today.isEqual(period.getEndDate())  // 오늘이 종료일(마지막 날)인지 여부
-        );
+        // 2. 시작일부터 종료일까지 30일간 반복하며 데이터 생성 (명세서 7-1)
+        for (int i = 0; i < 30; i++) {
+            LocalDate currentDate = period.getStartDate().plusDays(i);
+
+            // 3. 스탬프 활성 조건 체크 (명세서 6번)
+            // 조건: 해당 날짜에 지출이 있고, 그 지출이 당일에 입력되었는가 (DATE(created_at) = spent_date)
+            boolean isStamped = expenseRepository.existsValidStamp(period.getId(), currentDate);
+
+            if (isStamped) stampedDaysCount++;
+
+            // 4. 날짜별 상세 정보 조립
+            stampDetails.add(StampResponse.StampDetail.builder()
+                    .date(currentDate)
+                    .dayNumber(i + 1)
+                    .isStamped(isStamped)
+                    .isToday(currentDate.isEqual(today))
+                    .isLastDay(currentDate.isEqual(period.getEndDate()))
+                    .build());
+        }
+
+        // 5. 최종 응답 DTO 생성 (Builder 활용)
+        return StampResponse.builder()
+                .period(StampResponse.PeriodInfoDto.builder()
+                        .id(period.getId())
+                        .startDate(period.getStartDate())
+                        .endDate(period.getEndDate())
+                        .build())
+                .today(today)
+                .stamps(stampDetails)
+                .totalDays(30)
+                .stampedDays(stampedDaysCount)
+                .build();
     }
 }

@@ -1,36 +1,74 @@
 package com.leets.monifit_be.domain.expense.dto;
 
+import lombok.*;
+import java.time.LocalDate;
+
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class DashboardResponse {
-    private Long remainingBudget;
-    private Long totalExpense;
-    private Double usageRate;
-    private Integer remainingDays;
-    private Long dailyRecommended;
+    private boolean hasPeriod;         // 활성 기간 존재 여부
+    private ActivePeriodDto period;    // 활성 기간 상세 정보 (없으면 null)
+    private DashboardAlerts alerts;    // 알림 정보 (경고, 초과, 종료 등)
 
-    private boolean is50PercentWarning;
-    private boolean isOverBudget;
-    private boolean isPeriodEnded;
-
-    public DashboardResponse(Long remainingBudget, Long totalExpense, Double usageRate,
-                             Integer remainingDays, Long dailyRecommended,
-                             boolean is50PercentWarning, boolean isOverBudget, boolean isPeriodEnded) {
-        this.remainingBudget = remainingBudget;
-        this.totalExpense = totalExpense;
-        this.usageRate = usageRate;
-        this.remainingDays = remainingDays;
-        this.dailyRecommended = dailyRecommended;
-        this.is50PercentWarning = is50PercentWarning;
-        this.isOverBudget = isOverBudget;
-        this.isPeriodEnded = isPeriodEnded;
+    @Getter
+    @Builder
+    public static class ActivePeriodDto {
+        private Long id;
+        private LocalDate startDate;
+        private LocalDate endDate;
+        private Integer budgetAmount;
+        private Integer totalExpense;
+        private Integer remainingBudget;
+        private Integer savedAmount;
+        private Integer exceededAmount;
+        private Double usageRate;
+        private Double savingRate;
+        private Integer totalDays;
+        private Integer elapsedDays;
+        private Integer remainingDays;
+        private Double progressRate;
+        private Integer dailyRecommendedExpense;
     }
 
-    // Getters
-    public Long getRemainingBudget() { return remainingBudget; }
-    public Long getTotalExpense() { return totalExpense; }
-    public Double getUsageRate() { return usageRate; }
-    public Integer getRemainingDays() { return remainingDays; }
-    public Long getDailyRecommended() { return dailyRecommended; }
-    public boolean isIs50PercentWarning() { return is50PercentWarning; }
-    public boolean isIsOverBudget() { return isOverBudget; }
-    public boolean isIsPeriodEnded() { return isPeriodEnded; }
+    @Getter
+    @Builder
+    public static class DashboardAlerts {
+        private boolean showWarning;
+        private boolean showOverBudget;
+        private boolean showPeriodComplete;
+
+        private WarningDetail warning;
+        private OverBudgetDetail overBudget;
+        private PeriodCompleteDetail periodComplete;
+    }
+
+    // 50% 초과 경고 상세 정보
+    @Getter
+    @Builder
+    public static class WarningDetail {
+        private String title;
+        private String message;
+        private Integer dailyRecommendedExpense;
+    }
+
+    // 예산 초과 상세 정보
+    @Getter
+    @Builder
+    public static class OverBudgetDetail {
+        private String title;
+        private String message;
+        private Integer exceededAmount;
+    }
+
+    // 기간 종료(성공) 상세 정보
+    @Getter
+    @Builder
+    public static class PeriodCompleteDetail {
+        private String title;
+        private String message1;
+        private String message2;
+        private Integer savedAmount;
+    }
 }
