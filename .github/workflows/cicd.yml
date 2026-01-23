@@ -30,8 +30,21 @@ jobs:
       - name: Test
         run: ./gradlew test --no-daemon --stacktrace
         env:
-            SPRING_PROFILES_ACTIVE: test
-            JWT_SECRET: "dummy-for-ci"
+          SPRING_PROFILES_ACTIVE: test
+
+          # 이미 넣었던 것
+          JWT_SECRET: "dummy-for-ci"
+
+          # ✅ application.yaml이 요구하는 Kakao env 더미 (CI에선 실제로 안 써도 됨)
+          KAKAO_CLIENT_ID: "dummy"
+          KAKAO_CLIENT_SECRET: "dummy"
+          KAKAO_REDIRECT_URI: "http://localhost/dummy"
+          KAKAO_ADMIN_KEY: "dummy"
+
+          # ✅ 혹시 코드/설정이 요구하면 같이 더미로
+          DB_USERNAME: "dummy"
+          DB_PASSWORD: "dummy"
+
 
           
 
