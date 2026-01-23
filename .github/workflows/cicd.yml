@@ -33,7 +33,7 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
 
           # 이미 넣었던 것
-          JWT_SECRET: "dummy-for-ci"
+          JWT_SECRET: "THIS_IS_A_32+_CHAR_SECRET_FOR_CI_ONLY_1234567890"
 
           # ✅ application.yaml이 요구하는 Kakao env 더미 (CI에선 실제로 안 써도 됨)
           KAKAO_CLIENT_ID: "dummy"
