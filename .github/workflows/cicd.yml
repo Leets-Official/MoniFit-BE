@@ -28,9 +28,12 @@ jobs:
           chmod +x ./gradlew
       # 테스트에서 스프링 컨텍스트가 JWT_SECRET 요구하면 터질 수 있으니 더미 주입
       - name: Test
-        run: ./gradlew test
+        run: ./gradlew test --no-daemon --stacktrace
         env:
-          JWT_SECRET: "dummy-for-ci"
+            SPRING_PROFILES_ACTIVE: test
+            JWT_SECRET: "dummy-for-ci"
+
+          
 
   build_and_push:
     needs: [ci]
