@@ -35,3 +35,12 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Reference Documents ###
+reference/
+
+### Agent Workflows ###
+.agent/
+
+### Environment Variables ###
+.env

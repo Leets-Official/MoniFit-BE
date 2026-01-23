@@ -25,12 +25,36 @@ repositories {
 }
 
 dependencies {
+	// Spring Boot Starters
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	compileOnly 'org.projectlombok:lombok'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	
+	// JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	
+	// Dotenv (.env 파일 지원)
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	
+	// Swagger (API 문서화)
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
+	
+	// WebClient (카카오 API 호출용)
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	
+	// Database
 	runtimeOnly 'com.mysql:mysql-connector-j'
+	
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+	
+	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
