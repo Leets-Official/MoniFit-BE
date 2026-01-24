@@ -9,7 +9,7 @@
 # https://github.com/docker/awesome-compose
 services:
   app:
-    image: ghcr.io/Leets-Official/monifit-be:${IMAGE_TAG:-latest}
+    image: ghcr.io/leets-official/monifit-be:${IMAGE_TAG:-latest}
     restart: always
     ports:
       - "80:8080"   # 네 앱 포트로 수정
