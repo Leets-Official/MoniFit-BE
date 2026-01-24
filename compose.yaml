@@ -12,7 +12,7 @@ services:
     image: ghcr.io/Leets-Official/monifit-be:${IMAGE_TAG:-latest}
     restart: always
     ports:
-      - "8080:8080"   # 네 앱 포트로 수정
+      - "80:8080"   # 네 앱 포트로 수정
     env_file:
       - .env
 
