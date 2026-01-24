@@ -101,9 +101,16 @@ jobs:
           script: |
             set -e
             cd /srv/app
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+  
+            # ✅ OWNER를 lowercase로 강제
+            OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            export OWNER_LC
+  
+            # ✅ 이미지 태그 주입 (compose.yaml에서 사용)
             export IMAGE_TAG=${{ github.sha }}
+  
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+  
             docker compose -f compose.yaml pull
             docker compose -f compose.yaml up -d --remove-orphans --force-recreate
             docker image prune -f
-  
