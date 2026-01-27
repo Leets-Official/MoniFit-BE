@@ -1,22 +1,17 @@
 package com.leets.monifit_be.domain.expense.dto;
 
 import com.leets.monifit_be.domain.expense.entity.ExpenseCategory;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExpenseCreateRequest {
-    private Integer amount;
     private ExpenseCategory category;
+    private Integer amount;
     private LocalDate spentDate;
-
-    public ExpenseCreateRequest() {}
-
-    public ExpenseCreateRequest(Integer amount, ExpenseCategory category, LocalDate spentDate) {
-        this.amount = amount;
-        this.category = category;
-        this.spentDate = spentDate;
-    }
-
-    public Integer getAmount() { return amount; }
-    public ExpenseCategory getCategory() { return category; }
-    public LocalDate getSpentDate() { return spentDate; }
 }

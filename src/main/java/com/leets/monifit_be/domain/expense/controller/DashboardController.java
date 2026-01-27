@@ -2,7 +2,8 @@ package com.leets.monifit_be.domain.expense.controller;
 
 import com.leets.monifit_be.domain.expense.dto.DashboardResponse;
 import com.leets.monifit_be.domain.expense.service.DashboardService;
-import com.leets.monifit_be.global.response.ApiResponse; // 패키지 경로 확인
+import com.leets.monifit_be.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
+    @Operation(summary = "메인 화면 데이터 조회", description = "메인 화면에 필요한 통합 데이터를 조회합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard(
             @AuthenticationPrincipal Long memberId) {
