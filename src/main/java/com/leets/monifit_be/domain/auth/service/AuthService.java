@@ -4,6 +4,7 @@ import com.leets.monifit_be.domain.auth.dto.KakaoUserInfo;
 import com.leets.monifit_be.domain.auth.dto.TokenResponse;
 import com.leets.monifit_be.domain.auth.entity.RefreshToken;
 import com.leets.monifit_be.domain.auth.repository.RefreshTokenRepository;
+import com.leets.monifit_be.domain.budget.repository.BudgetPeriodRepository;
 import com.leets.monifit_be.domain.member.entity.Member;
 import com.leets.monifit_be.domain.member.repository.MemberRepository;
 import com.leets.monifit_be.global.exception.BusinessException;
@@ -28,24 +29,27 @@ public class AuthService {
     private final KakaoOAuthService kakaoOAuthService;
     private final MemberRepository memberRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final BudgetPeriodRepository budgetPeriodRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 카카오 로그인 (회원가입 포함)
      *
-     * @param code 카카오 인가 코드
-     * @return JWT 토큰 쌍 (액세스 토큰, 리프레시 토큰)
+     * @param authorizationCode 카카오 인가 코드
+     * @return JWT 토큰 쌍 및 회원 정보
      */
     @Transactional
-    public TokenResponse kakaoLogin(String code) {
+    public TokenResponse kakaoLogin(String authorizationCode) {
         // 1. 카카오 인가 코드로 액세스 토큰 발급
-        String kakaoAccessToken = kakaoOAuthService.getAccessToken(code);
+        String kakaoAccessToken = kakaoOAuthService.getAccessToken(authorizationCode);
 
         // 2. 카카오 액세스 토큰으로 사용자 정보 조회
         KakaoUserInfo kakaoUserInfo = kakaoOAuthService.getUserInfo(kakaoAccessToken);
 
-        // 3. 회원 조회 또는 신규 가입
-        Member member = findOrCreateMember(kakaoUserInfo);
+        // 3. 회원 조회 또는 신규 가입 (신규 여부 함께 반환)
+        MemberResult memberResult = findOrCreateMember(kakaoUserInfo);
+        Member member = memberResult.member;
+        boolean isNewMember = memberResult.isNew;
 
         // 4. JWT 토큰 발급
         String accessToken = jwtTokenProvider.createAccessToken(member.getId());
@@ -54,9 +58,19 @@ public class AuthService {
         // 5. 리프레시 토큰 저장 (기존 토큰이 있으면 갱신)
         saveOrUpdateRefreshToken(member, refreshToken);
 
-        log.info("카카오 로그인 성공: memberId={}, kakaoId={}", member.getId(), kakaoUserInfo.getId());
+        // 6. 예산 기간 설정 이력 확인
+        boolean hasEverSetBudget = budgetPeriodRepository.existsByMemberId(member.getId());
 
-        return TokenResponse.of(accessToken, refreshToken);
+        log.info("카카오 로그인 성공: memberId={}, kakaoId={}, isNewMember={}",
+                member.getId(), kakaoUserInfo.getId(), isNewMember);
+
+        return TokenResponse.ofLogin(
+                accessToken,
+                refreshToken,
+                (int) (jwtTokenProvider.getAccessTokenExpiration() / 1000),
+                isNewMember,
+                hasEverSetBudget,
+                member);
     }
 
     /**
@@ -98,7 +112,10 @@ public class AuthService {
 
         log.info("토큰 재발급 성공: memberId={}", member.getId());
 
-        return TokenResponse.of(newAccessToken, newRefreshToken);
+        return TokenResponse.ofReissue(
+                newAccessToken,
+                newRefreshToken,
+                (int) (jwtTokenProvider.getAccessTokenExpiration() / 1000));
     }
 
     /**
@@ -114,10 +131,17 @@ public class AuthService {
     }
 
     /**
+     * 회원 조회 또는 신규 가입 결과를 담는 내부 클래스
+     */
+    private record MemberResult(Member member, boolean isNew) {
+    }
+
+    /**
      * 회원 조회 또는 신규 가입
      */
-    private Member findOrCreateMember(KakaoUserInfo kakaoUserInfo) {
+    private MemberResult findOrCreateMember(KakaoUserInfo kakaoUserInfo) {
         return memberRepository.findByKakaoId(kakaoUserInfo.getId())
+                .map(member -> new MemberResult(member, false))
                 .orElseGet(() -> {
                     log.info("신규 회원 가입: kakaoId={}", kakaoUserInfo.getId());
                     Member newMember = Member.builder()
@@ -125,7 +149,7 @@ public class AuthService {
                             .email(kakaoUserInfo.getEmail())
                             .name(kakaoUserInfo.getNickname())
                             .build();
-                    return memberRepository.save(newMember);
+                    return new MemberResult(memberRepository.save(newMember), true);
                 });
     }
 
