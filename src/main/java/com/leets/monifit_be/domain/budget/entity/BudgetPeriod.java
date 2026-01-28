@@ -68,6 +68,9 @@ public class BudgetPeriod extends BaseTimeEntity {
     public void complete(CompletionType completionType) {
         this.status = PeriodStatus.COMPLETED;
         this.completionType = completionType;
+        if (completionType == CompletionType.OVER_BUDGET) {
+            this.endDate = LocalDate.now();
+        }
     }
 
     public void showWarning() {
