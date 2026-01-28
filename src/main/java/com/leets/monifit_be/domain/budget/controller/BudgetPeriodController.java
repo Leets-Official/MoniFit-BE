@@ -1,8 +1,6 @@
 package com.leets.monifit_be.domain.budget.controller;
 
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodCreateRequest;
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodDetailResponse;
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodResponse;
+import com.leets.monifit_be.domain.budget.dto.*;
 import com.leets.monifit_be.domain.budget.service.BudgetPeriodService;
 import com.leets.monifit_be.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 예산 기간 API 컨트롤러
@@ -36,12 +32,12 @@ public class BudgetPeriodController {
     /**
      * 예산 기간 생성
      * 목표 기간 및 예산을 설정합니다.
-     * 시작일은 오늘 이후(오늘 포함)만 가능하며, 기간은 자동으로 30일로 설정됩니다.
+     * 시작일은 오늘만 가능하며, 기간은 자동으로 30일로 설정됩니다.
      * 이미 활성 기간이 있으면 생성할 수 없습니다.
      *
      * 인증 필요 (Authorization: Bearer {accessToken})
      */
-    @Operation(summary = "예산 기간 생성", description = "목표 기간 및 예산을 설정합니다. 기간은 시작일로부터 자동으로 30일 설정됩니다.")
+    @Operation(summary = "예산 기간 생성", description = "목표 기간 및 예산을 설정합니다. 시작일은 오늘, 기간은 30일로 자동 설정됩니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<BudgetPeriodResponse>> create(
             @AuthenticationPrincipal Long memberId,
@@ -61,10 +57,10 @@ public class BudgetPeriodController {
      */
     @Operation(summary = "활성 예산 기간 조회", description = "현재 활성화된 예산 기간을 조회합니다. 활성 기간이 없으면 404를 반환합니다.")
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<BudgetPeriodResponse>> getActivePeriod(
+    public ResponseEntity<ApiResponse<ActiveBudgetPeriodResponse>> getActivePeriod(
             @AuthenticationPrincipal Long memberId) {
 
-        BudgetPeriodResponse response = budgetPeriodService.getActivePeriod(memberId);
+        ActiveBudgetPeriodResponse response = budgetPeriodService.getActivePeriod(memberId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -77,10 +73,10 @@ public class BudgetPeriodController {
      */
     @Operation(summary = "완료된 기간 목록 조회", description = "완료된 예산 기간 목록을 조회합니다. (리포트용)")
     @GetMapping("/completed")
-    public ResponseEntity<ApiResponse<List<BudgetPeriodResponse>>> getCompletedPeriods(
+    public ResponseEntity<ApiResponse<CompletedPeriodsResponse>> getCompletedPeriods(
             @AuthenticationPrincipal Long memberId) {
 
-        List<BudgetPeriodResponse> response = budgetPeriodService.getCompletedPeriods(memberId);
+        CompletedPeriodsResponse response = budgetPeriodService.getCompletedPeriods(memberId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

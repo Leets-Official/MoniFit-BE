@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class ExpenseController {
     @PostMapping
     public ResponseEntity<ApiResponse<ExpenseCreateResponse>> createExpense(
             @AuthenticationPrincipal Long memberId,
-            @RequestBody ExpenseCreateRequest request) {
+            @Valid @RequestBody ExpenseCreateRequest request) {
         ExpenseCreateResponse response = expenseService.createExpense(memberId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
@@ -53,7 +54,7 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<ExpenseUpdateResponse>> updateExpense(
             @AuthenticationPrincipal Long memberId,
             @Parameter(description = "지출 ID") @PathVariable Long expenseId,
-            @RequestBody ExpenseUpdateRequest request) {
+            @Valid @RequestBody ExpenseUpdateRequest request) {
         ExpenseUpdateResponse response = expenseService.updateExpense(memberId, expenseId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

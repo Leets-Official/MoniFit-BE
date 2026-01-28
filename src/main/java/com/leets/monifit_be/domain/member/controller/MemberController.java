@@ -1,6 +1,7 @@
 package com.leets.monifit_be.domain.member.controller;
 
 import com.leets.monifit_be.domain.member.dto.MemberNameUpdateRequest;
+import com.leets.monifit_be.domain.member.dto.MemberNameUpdateResponse;
 import com.leets.monifit_be.domain.member.dto.MemberResponse;
 import com.leets.monifit_be.domain.member.service.MemberService;
 import com.leets.monifit_be.global.response.ApiResponse;
@@ -45,11 +46,11 @@ public class MemberController {
      */
     @Operation(summary = "이름 수정", description = "로그인한 사용자의 이름을 수정합니다")
     @PatchMapping("/me/name")
-    public ResponseEntity<ApiResponse<MemberResponse>> updateName(
+    public ResponseEntity<ApiResponse<MemberNameUpdateResponse>> updateName(
             @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody MemberNameUpdateRequest request) {
 
-        MemberResponse response = memberService.updateName(memberId, request);
+        MemberNameUpdateResponse response = memberService.updateName(memberId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -60,10 +61,10 @@ public class MemberController {
      */
     @Operation(summary = "계정 삭제", description = "회원 탈퇴합니다. 카카오 연동 해제가 함께 진행됩니다")
     @DeleteMapping("/me")
-    public ResponseEntity<ApiResponse<Void>> deleteMember(
+    public ResponseEntity<Void> deleteMember(
             @AuthenticationPrincipal Long memberId) {
 
         memberService.deleteMember(memberId);
-        return ResponseEntity.ok(ApiResponse.success());
+        return ResponseEntity.noContent().build();
     }
 }

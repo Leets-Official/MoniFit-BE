@@ -1,13 +1,12 @@
 package com.leets.monifit_be.domain.auth.dto;
 
-import com.leets.monifit_be.domain.member.entity.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
 /**
  * 로그인/토큰 재발급 응답 DTO
- * API 명세서에 맞춰 모든 필드 포함
+ * API 명세서에 맞춰 정의
  */
 @Schema(description = "토큰 응답")
 @Getter
@@ -32,45 +31,15 @@ public class TokenResponse {
     @Schema(description = "예산 기간 설정 이력 여부 (첫 설정 시 '환영해요!' 메시지 표시용)")
     private Boolean hasEverSetBudget;
 
-    @Schema(description = "회원 정보")
-    private MemberInfo member;
-
     /**
-     * 회원 정보 내부 DTO
-     */
-    @Schema(description = "회원 기본 정보")
-    @Getter
-    @Builder
-    public static class MemberInfo {
-
-        @Schema(description = "회원 ID", example = "1")
-        private Long id;
-
-        @Schema(description = "회원 이름", example = "홍길동")
-        private String name;
-
-        @Schema(description = "이메일", example = "user@kakao.com")
-        private String email;
-
-        public static MemberInfo from(Member member) {
-            return MemberInfo.builder()
-                    .id(member.getId())
-                    .name(member.getName())
-                    .email(member.getEmail())
-                    .build();
-        }
-    }
-
-    /**
-     * 로그인 응답 생성 (전체 정보 포함)
+     * 로그인 응답 생성 (API 명세서 형식)
      */
     public static TokenResponse ofLogin(
             String accessToken,
             String refreshToken,
             int expiresInSeconds,
             boolean isNewMember,
-            boolean hasEverSetBudget,
-            Member member) {
+            boolean hasEverSetBudget) {
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -78,7 +47,6 @@ public class TokenResponse {
                 .expiresIn(expiresInSeconds)
                 .isNewMember(isNewMember)
                 .hasEverSetBudget(hasEverSetBudget)
-                .member(MemberInfo.from(member))
                 .build();
     }
 
