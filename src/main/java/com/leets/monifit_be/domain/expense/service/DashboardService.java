@@ -59,17 +59,36 @@ public class DashboardService {
                 boolean showPeriodComplete = false;
                 DashboardResponse.PeriodCompleteDetail periodCompleteDetail = null;
                 if (LocalDate.now().isAfter(period.getEndDate())) {
-                        period.complete(CompletionType.SUCCESS);
+                        // 예산 초과 여부에 따라 completionType 결정
+                        CompletionType completionType = totalExpense <= budgetAmount
+                                        ? CompletionType.SUCCESS
+                                        : CompletionType.OVER_BUDGET;
+                        period.complete(completionType);
+
                         if (!period.getPeriodCompleteShown()) {
                                 showPeriodComplete = true;
                                 period.showPeriodComplete();
-                                periodCompleteDetail = DashboardResponse.PeriodCompleteDetail.builder()
-                                                .title("기간 종료! 🎉")
-                                                .message1("이번 기간 동안 예산을 잘 관리했어요")
-                                                .message2("총 ₩" + String.format("%,d",
-                                                                savedAmount != null ? savedAmount : 0) + "을 절약했습니다")
-                                                .savedAmount(savedAmount)
-                                                .build();
+
+                                if (completionType == CompletionType.SUCCESS) {
+                                        periodCompleteDetail = DashboardResponse.PeriodCompleteDetail.builder()
+                                                        .title("기간 종료! 🎉")
+                                                        .message1("이번 기간 동안 예산을 잘 관리했어요")
+                                                        .message2("총 ₩" + String.format("%,d",
+                                                                        savedAmount != null ? savedAmount : 0)
+                                                                        + "을 절약했습니다")
+                                                        .savedAmount(savedAmount)
+                                                        .build();
+                                } else {
+                                        // 예산 초과 상태로 기간 종료
+                                        periodCompleteDetail = DashboardResponse.PeriodCompleteDetail.builder()
+                                                        .title("기간 종료")
+                                                        .message1("이번 기간은 예산을 초과했어요")
+                                                        .message2("₩" + String.format("%,d",
+                                                                        exceededAmount != null ? exceededAmount : 0)
+                                                                        + " 초과했습니다")
+                                                        .savedAmount(0)
+                                                        .build();
+                                }
                         }
 
                         // 기간 종료 시 hasPeriod = false

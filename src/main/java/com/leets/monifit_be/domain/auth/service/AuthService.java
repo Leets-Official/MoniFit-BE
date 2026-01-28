@@ -69,8 +69,7 @@ public class AuthService {
                 refreshToken,
                 (int) (jwtTokenProvider.getAccessTokenExpiration() / 1000),
                 isNewMember,
-                hasEverSetBudget,
-                member);
+                hasEverSetBudget);
     }
 
     /**

@@ -1,11 +1,12 @@
 package com.leets.monifit_be.domain.budget.service;
 
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodCreateRequest;
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodDetailResponse;
-import com.leets.monifit_be.domain.budget.dto.BudgetPeriodResponse;
+import com.leets.monifit_be.domain.budget.dto.*;
 import com.leets.monifit_be.domain.budget.entity.BudgetPeriod;
 import com.leets.monifit_be.domain.budget.entity.PeriodStatus;
 import com.leets.monifit_be.domain.budget.repository.BudgetPeriodRepository;
+import com.leets.monifit_be.domain.expense.entity.Expense;
+import com.leets.monifit_be.domain.expense.entity.ExpenseCategory;
+import com.leets.monifit_be.domain.expense.repository.ExpenseRepository;
 import com.leets.monifit_be.domain.member.entity.Member;
 import com.leets.monifit_be.domain.member.repository.MemberRepository;
 import com.leets.monifit_be.global.exception.BusinessException;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,7 +28,7 @@ import java.util.stream.Collectors;
  *
  * 비즈니스 규칙:
  * 1. 한 회원당 활성(ACTIVE) 기간은 하나만 존재 가능
- * 2. 시작일은 오늘 이후(오늘 포함)만 가능
+ * 2. 시작일은 오늘만 가능
  * 3. 기간은 자동으로 시작일 + 29일 (총 30일)
  * 4. 활성 기간이 없으면 404 반환 (클라이언트가 목표 설정 화면으로 유도)
  */
@@ -36,6 +39,7 @@ public class BudgetPeriodService {
 
     private final BudgetPeriodRepository budgetPeriodRepository;
     private final MemberRepository memberRepository;
+    private final ExpenseRepository expenseRepository;
 
     /**
      * 예산 기간 생성
@@ -56,9 +60,9 @@ public class BudgetPeriodService {
             throw new BusinessException(ErrorCode.ACTIVE_PERIOD_EXISTS);
         }
 
-        // 3. 시작일 유효성 검증 (오늘 포함 이후만 가능)
+        // 3. 시작일 유효성 검증 (오늘만 가능)
         LocalDate today = LocalDate.now();
-        if (request.getStartDate().isBefore(today)) {
+        if (!request.getStartDate().equals(today)) {
             log.warn("잘못된 시작일: memberId={}, startDate={}, today={}",
                     memberId, request.getStartDate(), today);
             throw new BusinessException(ErrorCode.INVALID_START_DATE);
@@ -88,10 +92,10 @@ public class BudgetPeriodService {
      * → 클라이언트는 404 응답 시 목표 설정 화면으로 이동
      *
      * @param memberId 회원 ID (JWT에서 추출)
-     * @return 활성 예산 기간 정보
+     * @return 활성 예산 기간 정보 (계산된 정보 포함)
      */
     @Transactional(readOnly = true)
-    public BudgetPeriodResponse getActivePeriod(Long memberId) {
+    public ActiveBudgetPeriodResponse getActivePeriod(Long memberId) {
         BudgetPeriod activePeriod = budgetPeriodRepository
                 .findByMemberIdAndStatus(memberId, PeriodStatus.ACTIVE)
                 .orElseThrow(() -> {
@@ -99,8 +103,13 @@ public class BudgetPeriodService {
                     return new BusinessException(ErrorCode.ACTIVE_PERIOD_NOT_FOUND);
                 });
 
-        log.info("활성 기간 조회: memberId={}, periodId={}", memberId, activePeriod.getId());
-        return BudgetPeriodResponse.from(activePeriod);
+        // 총 지출 계산
+        long totalExpense = expenseRepository.sumAmountByBudgetPeriod(activePeriod);
+
+        log.info("활성 기간 조회: memberId={}, periodId={}, totalExpense={}",
+                memberId, activePeriod.getId(), totalExpense);
+
+        return ActiveBudgetPeriodResponse.from(activePeriod, totalExpense);
     }
 
     /**
@@ -113,15 +122,20 @@ public class BudgetPeriodService {
      * @return 완료된 예산 기간 목록
      */
     @Transactional(readOnly = true)
-    public List<BudgetPeriodResponse> getCompletedPeriods(Long memberId) {
+    public CompletedPeriodsResponse getCompletedPeriods(Long memberId) {
         List<BudgetPeriod> completedPeriods = budgetPeriodRepository
                 .findByMemberIdAndStatusOrderByEndDateDesc(memberId, PeriodStatus.COMPLETED);
 
         log.info("완료된 기간 목록 조회: memberId={}, count={}", memberId, completedPeriods.size());
 
-        return completedPeriods.stream()
-                .map(BudgetPeriodResponse::from)
+        List<CompletedPeriodItem> items = completedPeriods.stream()
+                .map(period -> {
+                    long totalExpense = expenseRepository.sumAmountByBudgetPeriod(period);
+                    return CompletedPeriodItem.from(period, totalExpense);
+                })
                 .collect(Collectors.toList());
+
+        return CompletedPeriodsResponse.of(items);
     }
 
     /**
@@ -150,12 +164,33 @@ public class BudgetPeriodService {
             throw new BusinessException(ErrorCode.BUDGET_PERIOD_NOT_FOUND);
         }
 
-        // 3. 총 지출 계산
-        // TODO: Expense 구현 후 실제 지출 합계로 대체
-        Integer totalExpense = 0;
+        // 3. 해당 기간의 지출 내역 조회
+        List<Expense> expenses = expenseRepository.findByBudgetPeriodId(periodId);
 
-        log.info("기간 상세 조회: memberId={}, periodId={}", memberId, periodId);
-        return BudgetPeriodDetailResponse.from(budgetPeriod, totalExpense);
+        // 4. 총 지출 계산
+        int totalExpense = expenses.stream()
+                .mapToInt(Expense::getAmount)
+                .sum();
+
+        // 5. 카테고리별 지출 집계
+        Map<ExpenseCategory, Integer> categoryMap = expenses.stream()
+                .collect(Collectors.groupingBy(
+                        Expense::getCategory,
+                        Collectors.summingInt(Expense::getAmount)));
+
+        List<CategoryExpense> categoryExpenses = new ArrayList<>();
+        for (ExpenseCategory category : ExpenseCategory.values()) {
+            int amount = categoryMap.getOrDefault(category, 0);
+            double percentage = totalExpense > 0 ? (double) amount / totalExpense * 100 : 0;
+            categoryExpenses.add(CategoryExpense.of(
+                    category.name(),
+                    category.getDisplayName(),
+                    amount,
+                    percentage));
+        }
+
+        log.info("기간 상세 조회: memberId={}, periodId={}, totalExpense={}", memberId, periodId, totalExpense);
+        return BudgetPeriodDetailResponse.from(budgetPeriod, totalExpense, categoryExpenses);
     }
 
     /**

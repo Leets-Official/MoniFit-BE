@@ -22,6 +22,6 @@ public class BudgetPeriodCreateRequest {
     private LocalDate startDate;
 
     @NotNull(message = "예산 금액은 필수입니다")
-    @Min(value = 1, message = "예산 금액은 1원 이상이어야 합니다")
+    @Min(value = 1, message = "예산 금액은 양수여야 합니다")
     private Integer budgetAmount;
 }
