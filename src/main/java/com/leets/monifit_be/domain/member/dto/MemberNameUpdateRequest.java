@@ -12,6 +12,6 @@ import lombok.Getter;
 public class MemberNameUpdateRequest {
 
     @NotBlank(message = "이름은 필수입니다")
-    @Size(max = 50, message = "이름은 50자 이하여야 합니다")
+    @Size(min = 1, max = 50, message = "이름은 1~50자 사이여야 합니다")
     private String name;
 }

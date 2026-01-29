@@ -9,7 +9,7 @@ public enum ExpenseCategory {
     FOOD("식비"),
     SHOPPING("쇼핑"),
     MEDICAL("의료"),
-    LIVING("생활/편의"),
+    LIVING("생활"),
     ETC("기타");
 
     private final String displayName;

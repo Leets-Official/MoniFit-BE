@@ -1,11 +1,12 @@
 package com.leets.monifit_be.domain.budget.dto;
 
 import com.leets.monifit_be.domain.budget.entity.BudgetPeriod;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 예산 기간 상세 응답 DTO (리포트 상세용)
@@ -13,55 +14,76 @@ import java.time.LocalDateTime;
  *
  * 리포트 상세에서 필요한 정보:
  * - 기본 예산 기간 정보
- * - 총 지출 금액 (계산)
- * - 남은 예산 (계산)
- * - 절약/초과 금액 (계산)
+ * - 총 지출 금액
+ * - 절약/초과 금액
+ * - 카테고리별 지출 내역 (도넛 차트용)
  */
+@Schema(description = "예산 기간 상세 응답 (리포트 상세)")
 @Getter
 @Builder
 public class BudgetPeriodDetailResponse {
 
+    @Schema(description = "예산 기간 ID", example = "9")
     private Long id;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private Integer budgetAmount;
-    private String status;
-    private String completionType;
-    private Boolean warningShown;
-    private LocalDateTime createdAt;
 
-    // 계산 필드 (Expense 구현 후 실제 값으로 대체 예정)
-    private Integer totalExpense; // 총 지출 금액
-    private Integer remainingBudget; // 남은 예산 (budgetAmount - totalExpense)
-    private Integer savedAmount; // 절약 금액 (양수면 절약, 음수면 초과)
+    @Schema(description = "시작일", example = "2025-12-23")
+    private LocalDate startDate;
+
+    @Schema(description = "종료일", example = "2026-01-21")
+    private LocalDate endDate;
+
+    @Schema(description = "목표 예산 (원)", example = "400000")
+    private Integer budgetAmount;
+
+    @Schema(description = "총 지출 금액 (원)", example = "362000")
+    private Integer totalExpense;
+
+    @Schema(description = "상태 (ACTIVE / COMPLETED)", example = "COMPLETED")
+    private String status;
+
+    @Schema(description = "완료 유형 (SUCCESS / OVER_BUDGET)", example = "SUCCESS")
+    private String completionType;
+
+    @Schema(description = "절약 금액 (원, 초과 시 null)", example = "38000")
+    private Integer savedAmount;
+
+    @Schema(description = "초과 금액 (원, 절약 시 null)", example = "null")
+    private Integer exceededAmount;
+
+    @Schema(description = "카테고리별 지출 내역")
+    private List<CategoryExpense> categoryExpenses;
 
     /**
      * Entity -> DTO 변환
-     * 현재는 지출 정보 없이 기본 정보만 반환
-     * totalExpense는 0, remainingBudget은 budgetAmount로 설정
      *
-     * @param budgetPeriod 예산 기간 엔티티
-     * @param totalExpense 총 지출 금액 (Expense 집계 결과, 없으면 0)
+     * @param budgetPeriod     예산 기간 엔티티
+     * @param totalExpense     총 지출 금액
+     * @param categoryExpenses 카테고리별 지출 내역
      */
-    public static BudgetPeriodDetailResponse from(BudgetPeriod budgetPeriod, Integer totalExpense) {
-        int expense = totalExpense != null ? totalExpense : 0;
-        int remaining = budgetPeriod.getBudgetAmount() - expense;
-        int saved = remaining; // 남은 금액이 곧 절약 금액 (초과 시 음수)
+    public static BudgetPeriodDetailResponse from(
+            BudgetPeriod budgetPeriod,
+            int totalExpense,
+            List<CategoryExpense> categoryExpenses) {
+
+        int budget = budgetPeriod.getBudgetAmount();
+        int difference = budget - totalExpense;
+
+        Integer saved = difference >= 0 ? difference : null;
+        Integer exceeded = difference < 0 ? Math.abs(difference) : null;
 
         return BudgetPeriodDetailResponse.builder()
                 .id(budgetPeriod.getId())
                 .startDate(budgetPeriod.getStartDate())
                 .endDate(budgetPeriod.getEndDate())
-                .budgetAmount(budgetPeriod.getBudgetAmount())
+                .budgetAmount(budget)
+                .totalExpense(totalExpense)
                 .status(budgetPeriod.getStatus().name())
                 .completionType(budgetPeriod.getCompletionType() != null
                         ? budgetPeriod.getCompletionType().name()
                         : null)
-                .warningShown(budgetPeriod.getWarningShown())
-                .createdAt(budgetPeriod.getCreatedAt())
-                .totalExpense(expense)
-                .remainingBudget(remaining)
                 .savedAmount(saved)
+                .exceededAmount(exceeded)
+                .categoryExpenses(categoryExpenses)
                 .build();
     }
 }

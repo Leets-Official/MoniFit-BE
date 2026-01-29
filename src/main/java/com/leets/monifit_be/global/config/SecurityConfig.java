@@ -75,7 +75,8 @@ public class SecurityConfig {
                 configuration.setAllowedOrigins(Arrays.asList(
                                 "http://localhost:3000",
                                 "http://localhost:5173",
-                                "https://monifit.com"));
+                                "https://monifit.com",
+                                "https://moni-fit-fe.vercel.app"));
 
                 // 허용할 HTTP 메서드
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
