@@ -19,4 +19,11 @@ jobs:
           cache: "gradle"
 
       - run: chmod +x ./gradlew
-      - run: ./gradlew test -Dspring.profiles.active=test --stacktrace
+      - run: ./gradlew test --stacktrace \
+          -Dspring.profiles.active=test \
+          -Dspring.datasource.url="jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE" \
+          -Dspring.datasource.driver-class-name=org.h2.Driver \
+          -Dspring.datasource.username=sa \
+          -Dspring.datasource.password= \
+          -Dspring.jpa.hibernate.ddl-auto=create-drop \
+          -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect
