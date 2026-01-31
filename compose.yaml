@@ -9,12 +9,31 @@
 # https://github.com/docker/awesome-compose
 services:
   app:
-    image: ghcr.io/leets-official/monifit-be:${IMAGE_TAG:-latest}
+    image: ghcr.io/${OWNER_LC}/monifit-be:${IMAGE_TAG:-latest}
     restart: always
-    ports:
-      - "80:8080"   # 네 앱 포트로 수정
+    expose:
+      - "8080"
     env_file:
       - .env
+    environment:
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
