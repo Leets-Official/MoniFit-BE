@@ -1,18 +1,27 @@
+# ====== DB: H2 in-memory (MySQL 호환 모드) ======
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
-    password: ""
-
+    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
 
-  sql:
-    init:
-      mode: never
+# ====== 아래는 Placeholder( ${...} ) 깨지는 거 방지용 더미 ======
+JWT_SECRET: "test-jwt-secret-key-must-be-at-least-32-characters!!"
+
+KAKAO_CLIENT_ID: "dummy"
+KAKAO_CLIENT_SECRET: "dummy"
+KAKAO_REDIRECT_URI: "http://localhost:3000/auth/callback"
+KAKAO_ADMIN_KEY: "dummy"
+
+# 네가 application.yml에서 이 키들로 매핑한다면 같이 채워짐
+DB_URL: "jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+DB_USERNAME: "sa"
+DB_PASSWORD: ""
+
+JPA_DDL_AUTO: "create-drop"
+SHOW_SQL: "false"
