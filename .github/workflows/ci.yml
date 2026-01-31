@@ -7,8 +7,10 @@ on:
 
 jobs:
   test:
-    name: test
     runs-on: ubuntu-latest
+    env:
+      SPRING_PROFILES_ACTIVE: test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -21,30 +23,12 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Run tests (save log)
-        run: |
-          set -o pipefail
-          ./gradlew test --stacktrace --console=plain \
-            -Dspring.profiles.active=test \
-            -Dspring.datasource.url="jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE" \
-            -Dspring.datasource.driver-class-name=org.h2.Driver \
-            -Dspring.datasource.username=sa \
-            -Dspring.datasource.password="" \
-            -Dspring.jpa.hibernate.ddl-auto=create-drop \
-            -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect \
-            2>&1 | tee gradle-test.log
+      - name: Run tests
+        run: ./gradlew test --stacktrace --console=plain
 
-      - name: Print failure summary
-        if: failure()
-        run: |
-          echo "=== summary (tail) ==="
-          tail -n 200 gradle-test.log
-          echo "=== summary (grep) ==="
-          egrep -n "contextLoads|FAILED|Caused by:|HibernateException|Dialect|DataSource|BeanCreationException|APPLICATION FAILED TO START|UnsatisfiedDependency" gradle-test.log | tail -n 200 || true
-
-      - name: Upload gradle log on failure
+      - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-test-log
-          path: gradle-test.log
+          name: test-report
+          path: build/reports/tests/test
