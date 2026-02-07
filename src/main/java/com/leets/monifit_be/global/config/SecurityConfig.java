@@ -47,7 +47,7 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 // 인증 없이 접근 가능한 경로
                                                 .requestMatchers(
-                                                                "/api/v1/auth/kakao/**",
+                                                                "/api/v1/auth/kakao/login",
                                                                 "/api/v1/auth/reissue",
                                                                 "/health",
                                                                 "/error",
