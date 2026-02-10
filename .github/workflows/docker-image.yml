@@ -1,0 +1,66 @@
+name: Build & Deploy (dev)
+
+on:
+  push:
+    branches: ["develop"]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR 이미지 경로: ghcr.io/<owner>/<image>
+  # owner는 자동으로 github.repository_owner를 소문자로 맞춤
+  IMAGE_REPO: monifit-be
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image name (lowercase owner)
+        run: |
+          OWNER_LC=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=${{ env.REGISTRY }}/${OWNER_LC}/${{ env.IMAGE_REPO }}" >> $GITHUB_ENV
+
+      - name: Login to GHCR (push)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push (dev + sha)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:dev
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy_dev:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy dev (pull sha tag)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/app
+
+            # 서버에서 GHCR pull 인증 (패키지가 private이면 필수)
+            echo "${{ secrets.GHCR_TOKEN }}" | sudo docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            # main과 동일하게 sha 태그로 고정 배포
+            export IMAGE_TAG=${{ github.sha }}
+
+            sudo docker compose pull
+            sudo docker compose up -d --remove-orphans --force-recreate
+            sudo docker image prune -f

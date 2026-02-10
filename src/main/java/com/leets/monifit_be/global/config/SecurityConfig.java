@@ -76,7 +76,9 @@ public class SecurityConfig {
                                 "http://localhost:3000",
                                 "http://localhost:5173",
                                 "https://monifit.com",
-                                "https://moni-fit-fe.vercel.app"));
+                                "https://moni-fit-fe.vercel.app",
+                                "https://monifit-be.duckdns.org",
+                                "https://monifit-be-dev.duckdns.org"));
 
                 // 허용할 HTTP 메서드
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
