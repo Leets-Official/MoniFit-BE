@@ -22,17 +22,42 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
+      - name: Prepare Gradle Wrapper
+        run: |
+          sed -i 's/\r$//' ./gradlew
+          chmod +x ./gradlew
       # 테스트에서 스프링 컨텍스트가 JWT_SECRET 요구하면 터질 수 있으니 더미 주입
       - name: Test
-        run: ./gradlew test
+        run: ./gradlew test --no-daemon --stacktrace
         env:
-          JWT_SECRET: "dummy-for-ci"
+          SPRING_PROFILES_ACTIVE: test
+
+          # 이미 넣었던 것
+          JWT_SECRET: "THIS_IS_A_32+_CHAR_SECRET_FOR_CI_ONLY_1234567890"
+
+          # ✅ application.yaml이 요구하는 Kakao env 더미 (CI에선 실제로 안 써도 됨)
+          KAKAO_CLIENT_ID: "dummy"
+          KAKAO_CLIENT_SECRET: "dummy"
+          KAKAO_REDIRECT_URI: "http://localhost/dummy"
+          KAKAO_ADMIN_KEY: "dummy"
+
+          # ✅ 혹시 코드/설정이 요구하면 같이 더미로
+          DB_USERNAME: "dummy"
+          DB_PASSWORD: "dummy"
+
+
+          
 
   build_and_push:
     needs: [ci]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set image name (lowercase)
+        run: |
+          OWNER_LC=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${OWNER_LC}/monifit-be" >> $GITHUB_ENV
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -54,6 +79,18 @@ jobs:
     needs: [build_and_push]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+  
+      - name: Upload compose.yaml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          source: "compose.yaml,Caddyfile"
+          target: "/srv/app"
+  
       - name: Deploy on EC2 (pull & restart)
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -64,11 +101,16 @@ jobs:
           script: |
             set -e
             cd /srv/app
-
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
-
+  
+            # ✅ OWNER를 lowercase로 강제
+            OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            export OWNER_LC
+  
+            # ✅ 이미지 태그 주입 (compose.yaml에서 사용)
             export IMAGE_TAG=${{ github.sha }}
-
-            docker compose pull
-            docker compose up -d --remove-orphans
+  
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+  
+            docker compose -f compose.yaml pull
+            docker compose -f compose.yaml up -d --remove-orphans --force-recreate
             docker image prune -f
