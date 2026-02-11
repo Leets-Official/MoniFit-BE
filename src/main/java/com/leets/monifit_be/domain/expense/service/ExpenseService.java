@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +39,7 @@ public class ExpenseService {
                                 .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVE_PERIOD_NOT_FOUND));
 
                 // 2. 날짜 설정 및 오늘 첫 기록 여부 확인
-                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul")); // 한국 시간대 기준 오늘 날짜
+                LocalDate today = LocalDate.now(); // TimezoneConfig에 의해 자동으로 한국 시간
                 LocalDate spentDate = (request.getSpentDate() != null) ? request.getSpentDate() : today;
                 boolean isTodayRecord = spentDate.equals(today);
                 boolean todayFirstExpense = !expenseRepository.existsByBudgetPeriodAndSpentDate(budgetPeriod,
@@ -230,7 +229,7 @@ public class ExpenseService {
                 int budgetAmount = budgetPeriod.getBudgetAmount();
                 long remainingBudget = Math.max(0, budgetAmount - totalExpense);
                 double usageRate = (double) totalExpense / budgetAmount * 100;
-                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+                LocalDate today = LocalDate.now(); // TimezoneConfig에 의해 자동으로 한국 시간
                 long remainingDays = Math.max(1,
                                 java.time.temporal.ChronoUnit.DAYS.between(today, budgetPeriod.getEndDate()));
                 long dailyRecommended = remainingBudget / remainingDays;
