@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -34,7 +33,7 @@ public class DashboardService {
                 }
 
                 // 3. 기본 데이터 계산
-                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul")); // 한국 시간대 기준 오늘 날짜
+                LocalDate today = LocalDate.now(); // TimezoneConfig에 의해 자동으로 한국 시간
                 int budgetAmount = period.getBudgetAmount();
                 long totalExpense = expenseRepository.sumAmountByBudgetPeriod(period);
                 long remainingBudget = Math.max(0, budgetAmount - totalExpense);
