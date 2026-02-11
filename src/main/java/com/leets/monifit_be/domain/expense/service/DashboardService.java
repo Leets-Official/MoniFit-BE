@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -33,6 +34,7 @@ public class DashboardService {
                 }
 
                 // 3. 기본 데이터 계산
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul")); // 한국 시간대 기준 오늘 날짜
                 int budgetAmount = period.getBudgetAmount();
                 long totalExpense = expenseRepository.sumAmountByBudgetPeriod(period);
                 long remainingBudget = Math.max(0, budgetAmount - totalExpense);
@@ -40,9 +42,9 @@ public class DashboardService {
                 double savingRate = Math.max(0, 100 - usageRate);
 
                 long totalDays = ChronoUnit.DAYS.between(period.getStartDate(), period.getEndDate()) + 1;
-                long elapsedDays = Math.min(ChronoUnit.DAYS.between(period.getStartDate(), LocalDate.now()) + 1,
+                long elapsedDays = Math.min(ChronoUnit.DAYS.between(period.getStartDate(), today) + 1,
                                 totalDays);
-                long remainingDays = Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), period.getEndDate()));
+                long remainingDays = Math.max(0, ChronoUnit.DAYS.between(today, period.getEndDate()));
                 double progressRate = ((double) elapsedDays / totalDays) * 100;
                 long dailyRecommended = (remainingDays > 0) ? remainingBudget / remainingDays : 0;
 
@@ -58,7 +60,7 @@ public class DashboardService {
                 // 4. 마감일 도달 체크 및 처리
                 boolean showPeriodComplete = false;
                 DashboardResponse.PeriodCompleteDetail periodCompleteDetail = null;
-                if (LocalDate.now().isAfter(period.getEndDate())) {
+                if (today.isAfter(period.getEndDate())) {
                         // 예산 초과 여부에 따라 completionType 결정
                         CompletionType completionType = totalExpense <= budgetAmount
                                         ? CompletionType.SUCCESS
