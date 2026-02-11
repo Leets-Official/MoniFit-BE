@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class StampService {
                 // 이전/다음 기간 탐색 정보 조회
                 StampResponse.NavigationDto navigation = buildNavigation(memberId, period);
 
-                LocalDate today = LocalDate.now();
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul")); // 한국 시간대 기준 오늘 날짜
                 List<StampResponse.StampDetail> stampDetails = new ArrayList<>();
                 int stampedDaysCount = 0;
 

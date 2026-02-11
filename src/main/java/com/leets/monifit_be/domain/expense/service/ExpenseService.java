@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
@@ -39,8 +40,9 @@ public class ExpenseService {
                                 .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVE_PERIOD_NOT_FOUND));
 
                 // 2. 날짜 설정 및 오늘 첫 기록 여부 확인
-                LocalDate spentDate = (request.getSpentDate() != null) ? request.getSpentDate() : LocalDate.now();
-                boolean isTodayRecord = spentDate.equals(LocalDate.now());
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul")); // 한국 시간대 기준 오늘 날짜
+                LocalDate spentDate = (request.getSpentDate() != null) ? request.getSpentDate() : today;
+                boolean isTodayRecord = spentDate.equals(today);
                 boolean todayFirstExpense = !expenseRepository.existsByBudgetPeriodAndSpentDate(budgetPeriod,
                                 spentDate);
 
@@ -64,7 +66,7 @@ public class ExpenseService {
                 long remainingBudget = Math.max(0, budgetAmount - totalExpense);
                 double usageRate = (double) totalExpense / budgetAmount * 100;
                 long remainingDays = Math.max(1,
-                                java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), budgetPeriod.getEndDate()));
+                                java.time.temporal.ChronoUnit.DAYS.between(today, budgetPeriod.getEndDate()));
                 long dailyRecommended = remainingBudget / remainingDays;
 
                 // 6. 예산 초과 감지 시 자동 종료
@@ -228,8 +230,9 @@ public class ExpenseService {
                 int budgetAmount = budgetPeriod.getBudgetAmount();
                 long remainingBudget = Math.max(0, budgetAmount - totalExpense);
                 double usageRate = (double) totalExpense / budgetAmount * 100;
+                LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
                 long remainingDays = Math.max(1,
-                                java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), budgetPeriod.getEndDate()));
+                                java.time.temporal.ChronoUnit.DAYS.between(today, budgetPeriod.getEndDate()));
                 long dailyRecommended = remainingBudget / remainingDays;
 
                 // 예산 초과 감지
