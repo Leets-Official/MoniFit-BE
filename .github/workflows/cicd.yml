@@ -26,27 +26,21 @@ jobs:
         run: |
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew
-      # 테스트에서 스프링 컨텍스트가 JWT_SECRET 요구하면 터질 수 있으니 더미 주입
+
       - name: Test
         run: ./gradlew test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
 
-          # 이미 넣었던 것
           JWT_SECRET: "THIS_IS_A_32+_CHAR_SECRET_FOR_CI_ONLY_1234567890"
 
-          # ✅ application.yaml이 요구하는 Kakao env 더미 (CI에선 실제로 안 써도 됨)
           KAKAO_CLIENT_ID: "dummy"
           KAKAO_CLIENT_SECRET: "dummy"
           KAKAO_REDIRECT_URI: "http://localhost/dummy"
           KAKAO_ADMIN_KEY: "dummy"
 
-          # ✅ 혹시 코드/설정이 요구하면 같이 더미로
           DB_USERNAME: "dummy"
           DB_PASSWORD: "dummy"
-
-
-          
 
   build_and_push:
     needs: [ci]
@@ -80,7 +74,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-  
+
+      # ✅ scp 전에 /srv/app 폴더 보장 + 권한 설정
+      - name: Prepare /srv/app on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -e
+            sudo mkdir -p /srv/app
+            sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} /srv/app
+
       - name: Upload compose.yaml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -90,7 +97,7 @@ jobs:
           port: ${{ secrets.EC2_PORT }}
           source: "compose.yaml,Caddyfile"
           target: "/srv/app"
-  
+
       - name: Deploy on EC2 (pull & restart)
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -99,18 +106,25 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            set -e
+            set -euo pipefail
+            set -x
+
             cd /srv/app
-  
-            # ✅ OWNER를 lowercase로 강제
+
+            # ✅ OWNER를 lowercase로 강제 (compose.yaml에서 사용)
             OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
             export OWNER_LC
-  
+
             # ✅ 이미지 태그 주입 (compose.yaml에서 사용)
             export IMAGE_TAG=${{ github.sha }}
-  
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
-  
-            docker compose -f compose.yaml pull
-            docker compose -f compose.yaml up -d --remove-orphans --force-recreate
-            docker image prune -f
+
+            # (선택) docker 데몬 확인/기동
+            sudo systemctl is-active --quiet docker || sudo systemctl start docker
+
+            # ✅ 중요: sudo로 로그인해야 sudo docker pull/compose가 인증 먹음
+            echo "${{ secrets.GHCR_TOKEN }}" | sudo docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            # ✅ 중요: docker 명령 전부 sudo로
+            sudo docker compose -f compose.yaml pull
+            sudo docker compose -f compose.yaml up -d --remove-orphans --force-recreate
+            sudo docker image prune -f
